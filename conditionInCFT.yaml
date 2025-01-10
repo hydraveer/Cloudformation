@@ -1,0 +1,52 @@
+Parameters:
+  ImageId: 
+    Type: String
+    Description: This image id must be used
+    Default: "ami-0e2c8caa4b6378d8c"
+  EnvType: 
+    Type: String
+    Description: Environment where we run our project in different phase
+    Default: dev
+    AllowedValues:
+      - Prod
+      - dev
+    ConstraintDescription: Must specify from dev and Prod 
+Conditions: 
+  CreateForProd: !Equals [!Ref EnvType, Prod]
+  CreateForDev: !Equals [!Ref EnvType, Dev]
+Resources:
+  MyDevInstance:
+    Type: AWS::EC2::Instance
+    Description: This machine for Dev
+    Condition: CreateForDev
+    Properties: 
+      ImageId: !Ref ImageId
+      InstanceType: t2.micro
+
+  MyProdInstance:
+    Type: AWS::EC2::Instance
+    Description: This machine for Dev
+    Condition: CreateForProd
+    Properties: 
+      ImageId: !Ref ImageId
+      InstanceType: t3.micro
+
+  MountStorage:
+    Type: AWS::EC2::VolumeAttachment
+    Condition: CreateForProd
+    Properties:
+      InstanceId: !Ref MyProdInstance
+      VolumeId: !Ref MyVol
+      Device: /dev/sdh
+    DependsOn: MyVol
+
+  MyVol:
+    Type: AWS::EC2::Volume
+    Condition: CreateForProd
+    Properties: 
+      Size: 100
+      AvailabilityZone: !GetAtt MyProdInstance.AvailabilityZone
+    DependsOn: MyProdInstance
+
+  
+
