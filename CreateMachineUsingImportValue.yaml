@@ -1,0 +1,17 @@
+Parameters:
+  ImageId: 
+    Type: String
+    Description: This image id must be used
+    Default: "ami-0e2c8caa4b6378d8c"
+  InstanceType: 
+    Type: String
+    Description: This is the only machine that we can spin 
+    Default: t2.micro
+Resources: 
+  MyInstance:
+    Type: AWS::EC2::Instance 
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds: 
+        - !ImportValue LuxSecurity
