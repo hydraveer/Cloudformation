@@ -1,0 +1,52 @@
+Parameters:
+  ImageId: 
+    Type: String 
+    Default: "ami-0e2c8caa4b6378d8c"
+  InstanceType: 
+    Type: String 
+    Default: "t2.micro"
+    AllowedValues: 
+      - "t2.micro"
+      - "t3.micro"
+    ConstraintDescription: Only these machine type are allowed 
+  KeyName: 
+    Type: String 
+    Default: "the-root"
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: This will use in other ec2
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp 
+          FromPort: 22
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp 
+          FromPort: 80
+          ToPort: 80
+  MyInstance: 
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups: 
+        - !Ref SecurityGroup
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          # Update the package repository
+          apt update -y
+          # Install Apache
+          apt install -y apache2
+          # Start and enable the Apache service
+          systemctl start apache2
+          systemctl enable apache2
+          # Create a simple HTML page
+          echo "Hello World from $(hostname -f)" > /var/www/html/index.html
+
+
+
+      
