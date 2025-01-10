@@ -1,0 +1,27 @@
+Resources:
+  SecurityGroupFroQuantiphi: 
+    Type: AWS::EC2::SecurityGroup
+    Description: These security will use as a primary security group 
+    Properties:
+      GroupName: LuxCop
+      GroupDescription: Lux corp is owned by lex luther
+      SecurityGroupIngress: 
+        - IpProtocol: tcp 
+          CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+        - IpProtocol: tcp
+          CidrIp: 10.48.48.0/24
+          FromPort: 80
+          ToPort: 80
+        - IpProtocol: tcp
+          CidrIp: 10.111.48.0/24
+          FromPort: 443
+          ToPort: 443
+Outputs:
+  SshHttpSecuriytGroup:
+    Description: this will use by all ec2 inside Quantiphi
+    Value: !Ref SecurityGroupFroQuantiphi
+    Export: 
+      Name: LuxSecurity
+
