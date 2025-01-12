@@ -1,0 +1,37 @@
+Resources: 
+  MyVpc:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+  InternetGatway:
+    Type: AWS::EC2::InternetGatway
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: "InternetGateway"
+    PublicSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref MyVpc
+        CidrBlock: 10.0.1.0/24
+        MapPublicOnLaunch: true
+        AvailabilityZone: !Select 
+          -0 
+          - !GetAZs ""
+    PublicRouteTable: 
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref MyVpc
+    PublicRoute: 
+      Type: AWS::EC2::Route
+      Properties:
+        RouteTableId: !Ref PublicRouteTable
+        DestinationCidrBlock: "0.0.0.0/0" # Default route to the Internet.
+        GatewayId: !Ref InternetGateway
+    SubnetRouteTableAssociation:
+      Type: "AWS::EC2::SubnetRouteTableAssociation"
+      Properties:
+        SubnetId: !Ref PublicSubnet
+        RouteTableId: !Ref PublicRouteTable
