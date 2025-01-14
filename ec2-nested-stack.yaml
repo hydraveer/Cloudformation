@@ -1,0 +1,28 @@
+Parameters: 
+  Myvpc:  
+    Description: Where ec2 machine will run 
+    Type: AWS::EC2::VPC::Id
+  TemplateUrl: 
+    Description: This is the url of the nested stack
+    Type:  String 
+  ImageId: 
+    Description: Image id 
+    Type: String 
+    Default: "ami-0e2c8caa4b6378d8c"
+
+Resources:
+  SSHSecurityStack: 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref TemplateUrl
+      Parameters: 
+        MyApplication: !Ref AWS::StackName
+        MyVpcId: !Ref Myvpc
+      TimeoutInMinutes: 5
+  Ec2Instance:
+    Type: AWS::EC2::Instance 
+    Properties: 
+      InstanceType: t2.micro
+      ImageId: !Ref ImageId
+      SecurityGroupIds: 
+        - !GetAtt SSHSecurityStack.Outputs.SSHGroupId
