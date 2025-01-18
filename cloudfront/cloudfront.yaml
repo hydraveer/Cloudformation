@@ -1,0 +1,58 @@
+Parameters:
+  ImageId:
+    Type: String
+    Description: ImageId that will use for create instance 
+    Default: "ami-09115b7bffbe3c5e4"
+  InstanceType: 
+    Type: String 
+    Description: Type of image that we can used for our application
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3.xlarge
+  KeyName: 
+    Type: String
+    Description: Key that use for ssh remotely
+    Default: the-root
+  SecurityGroupName:
+    Type: String
+    Description: Name of security group 
+    Default: "LexLuther"
+  SecurityGroupDescription: 
+    Type: String 
+    Description: Security group description
+  Myvpc: 
+    Type: AWS::EC2::VPC::Id
+    Description: Vpc where we host our application
+    
+Resources:
+  MyInstance: 
+    Type: AWS::EC2::Instance
+    Description: webserver host machine
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref MysecurityGroup
+
+  MysecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: !Ref SecurityGroupDescription
+      GroupName: !Ref SecurityGroupName
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp 
+          ToPort: 22
+          FromPort: 22
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp 
+          ToPort: 80
+          FromPort: 80
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp 
+          ToPort: 443
+          FromPort: 443
+        
