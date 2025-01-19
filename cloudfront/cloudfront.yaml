@@ -1,58 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template for creating an EC2 instance, ALB, Target Group, and Security Group.
+
 Parameters:
   ImageId:
     Type: String
-    Description: ImageId that will use for create instance 
+    Description: AMI ID to launch the instance
     Default: "ami-09115b7bffbe3c5e4"
-  InstanceType: 
-    Type: String 
-    Description: Type of image that we can used for our application
+  InstanceType:
+    Type: String
+    Description: Instance type for the EC2 instance
     Default: t2.micro
     AllowedValues:
       - t2.micro
       - t3.micro
       - t3.xlarge
-  KeyName: 
+  KeyName:
     Type: String
-    Description: Key that use for ssh remotely
-    Default: the-root
+    Description: Key pair for SSH access to the instance
+    Default: "the-root"
   SecurityGroupName:
     Type: String
-    Description: Name of security group 
-    Default: "LexLuther"
-  SecurityGroupDescription: 
-    Type: String 
-    Description: Security group description
-  Myvpc: 
+    Description: Name of the security group
+    Default: "LexLutherCt"
+  SecurityGroupDescription:
+    Type: String
+    Description: Description of the security group
+    Default: "Security group for web server"
+  MyVpc:
     Type: AWS::EC2::VPC::Id
-    Description: Vpc where we host our application
-    
+    Description: VPC where the resources will be deployed
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for ALB (1)
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for ALB (2)
+
 Resources:
-  MyInstance: 
+  MyInstance:
     Type: AWS::EC2::Instance
-    Description: webserver host machine
     Properties:
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       SecurityGroupIds:
-        - !Ref MysecurityGroup
+        - !Ref MySecurityGroup
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          # Update the system
+          yum update -y
 
-  MysecurityGroup:
+          # Install Apache web server
+          yum install -y httpd
+
+          # Start the Apache service
+          systemctl start httpd
+
+          # Enable the service to start on boot
+          systemctl enable httpd
+
+          # Create a test index.html file
+          echo "<html><body><h1>Apache Web Server Running</h1></body></html>" > /var/www/html/index.html
+
+          # Ensure proper permissions for the web directory
+          chown -R apache:apache /var/www/html
+          chmod -R 755 /var/www/html
+
+  MySecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Properties: 
+    Properties:
       GroupDescription: !Ref SecurityGroupDescription
       GroupName: !Ref SecurityGroupName
+      VpcId: !Ref MyVpc
       SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
-          IpProtocol: tcp 
-          ToPort: 22
+          IpProtocol: tcp
           FromPort: 22
+          ToPort: 22
         - CidrIp: 0.0.0.0/0
-          IpProtocol: tcp 
-          ToPort: 80
+          IpProtocol: tcp
           FromPort: 80
+          ToPort: 80
         - CidrIp: 0.0.0.0/0
-          IpProtocol: tcp 
-          ToPort: 443
+          IpProtocol: tcp
           FromPort: 443
-        
+          ToPort: 443
+
+  MyTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: LexTargetGroup1
+      HealthCheckEnabled: true
+      HealthCheckPath: /
+      TargetType: instance
+      Protocol: HTTP
+      Port: 80
+      VpcId: !Ref MyVpc
+      Targets:
+        - Id: !Ref MyInstance
+
+  MyAlb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: LexALb
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      Type: application
+
+  MyListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref MyTargetGroup
+      LoadBalancerArn: !Ref MyAlb
+      Port: 80
+      Protocol: HTTP
