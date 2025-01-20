@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Template for creating an EC2 instance, ALB, Target Group, and Security Group.
-
+# Parameters
 Parameters:
   ImageId:
     Type: String
@@ -37,6 +37,7 @@ Parameters:
     Description: Subnet for ALB (2)
 
 Resources:
+# Creating the ec2 machine
   MyInstance:
     Type: AWS::EC2::Instance
     Properties:
@@ -66,7 +67,7 @@ Resources:
           # Ensure proper permissions for the web directory
           chown -R apache:apache /var/www/html
           chmod -R 755 /var/www/html
-
+  # Security Groups
   MySecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -86,7 +87,7 @@ Resources:
           IpProtocol: tcp
           FromPort: 443
           ToPort: 443
-
+# Target group for ALB
   MyTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -99,7 +100,7 @@ Resources:
       VpcId: !Ref MyVpc
       Targets:
         - Id: !Ref MyInstance
-
+# Application load balancer
   MyAlb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -112,7 +113,7 @@ Resources:
         - !Ref Subnet1
         - !Ref Subnet2
       Type: application
-
+#Listener that connect ALB and Target Group
   MyListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -122,3 +123,46 @@ Resources:
       LoadBalancerArn: !Ref MyAlb
       Port: 80
       Protocol: HTTP
+# Cloudfront Distribution
+  MyDistribuition:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - Id: MyAlbOrigin
+            DomainName: !GetAtt MyAlb.DNSName
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        DefaultCacheBehavior:
+          TargetOriginId: MyAlbOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Enabled: true
+# Output the URL and other thing  
+Outputs:
+  MyDomainName:
+      Description: Domain for users
+      Value: !GetAtt MyDistribuition.DomainName
+      Export: 
+        Name: DomainName
+  MyAlbDns:
+      Description: DNS by application load balancer
+      Value: !GetAtt MyAlb.DNSName
+      Export: 
+        Name: DNSbyALB
+  MyAlbDnsArn:
+      Description: DNS ARN by application load balancer
+      Value: !GetAtt MyAlb.LoadBalancerArn
+      Export: 
+        Name: DNSARNbyAlb
+  
